@@ -33,7 +33,6 @@ public class FacebookService {
 			// Send request
 			DataOutputStream wr = new DataOutputStream(con.getOutputStream());
 			wr.close();
-
 			// Get Response
 			InputStream is = con.getInputStream();
 			BufferedReader rd = new BufferedReader(new InputStreamReader(is));

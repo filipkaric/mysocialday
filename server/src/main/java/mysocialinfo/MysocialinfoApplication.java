@@ -1,6 +1,8 @@
 package mysocialinfo;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.Filter;
 
@@ -24,6 +26,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.filter.CompositeFilter;
 
 @SpringBootApplication
 @EnableOAuth2Client
@@ -52,6 +55,9 @@ public class MysocialinfoApplication extends WebSecurityConfigurerAdapter {
 	}
 
 	private Filter ssoFilter() {
+		CompositeFilter filter = new CompositeFilter();
+		List<Filter> filters = new ArrayList<>();
+
 		OAuth2ClientAuthenticationProcessingFilter facebookFilter = new OAuth2ClientAuthenticationProcessingFilter(
 				"/login/facebook");
 		OAuth2RestTemplate facebookTemplate = new OAuth2RestTemplate(facebook(), oauth2ClientContext);
@@ -60,7 +66,20 @@ public class MysocialinfoApplication extends WebSecurityConfigurerAdapter {
 				facebook().getClientId());
 		tokenServices.setRestTemplate(facebookTemplate);
 		facebookFilter.setTokenServices(tokenServices);
-		return facebookFilter;
+
+		filters.add(facebookFilter);
+
+		OAuth2ClientAuthenticationProcessingFilter githubFilter = new OAuth2ClientAuthenticationProcessingFilter(
+				"/login/github");
+		OAuth2RestTemplate githubTemplate = new OAuth2RestTemplate(github(), oauth2ClientContext);
+		githubFilter.setRestTemplate(githubTemplate);
+		tokenServices = new UserInfoTokenServices(githubResource().getUserInfoUri(), github().getClientId());
+		tokenServices.setRestTemplate(githubTemplate);
+		githubFilter.setTokenServices(tokenServices);
+		filters.add(githubFilter);
+
+		filter.setFilters(filters);
+		return filter;
 	}
 
 	@Bean
@@ -72,6 +91,18 @@ public class MysocialinfoApplication extends WebSecurityConfigurerAdapter {
 	@Bean
 	@ConfigurationProperties("facebook.resource")
 	public ResourceServerProperties facebookResource() {
+		return new ResourceServerProperties();
+	}
+
+	@Bean
+	@ConfigurationProperties("github.client")
+	public AuthorizationCodeResourceDetails github() {
+		return new AuthorizationCodeResourceDetails();
+	}
+
+	@Bean
+	@ConfigurationProperties("github.resource")
+	public ResourceServerProperties githubResource() {
 		return new ResourceServerProperties();
 	}
 
